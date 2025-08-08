@@ -20,6 +20,7 @@ The following clock sources are supported:
 chip
 * the generic [STM32 RTC Clock](https://github.com/stm32duino/STM32RTC)
 * the special [STM32F1 RTC Clock](https://github.com/stm32duino/STM32RTC/issues/29)
+* an external NMEA compliant GPS receiver
 * an [NTP](https://en.wikipedia.org/wiki/Network_Time_Protocol) server
   using a hand-crafted NTP client
 * the SNTP client on ESP8266 and ESP32 platforms
@@ -49,7 +50,7 @@ complexity of both libraries.
 This library can be an alternative to the Arduino Time
 (https://github.com/PaulStoffregen/Time) library.
 
-**Version**: v1.3.0 (2023-07-20)
+**Version**: v1.3.1 (2025-08-09)
 
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -266,6 +267,8 @@ The following programs are provided in the `examples/` directory:
     * same as `HelloSystemClockLoop` but using AceRoutine coroutines
 * [HelloDS3231Clock](examples/HelloDS3231Clock/)
     * demo of `DS3231Clock<T>` template class using `<AceWire.h>`
+* [HelloNmeaClock](examples/HelloNmeaClock/)
+    * demo of `NmeaClock` on ESP8266 and ESP32
 * [HelloNtpClock](examples/HelloNtpClock/)
     * demo of `NtpClock` on ESP8266 and ESP32
 * [HelloNtpClockLazy](examples/HelloNtpClockLazy/)
@@ -343,6 +346,7 @@ and the diamond-line means "is-aggregation-of":
    |           |    StmRtcClock -----> hw::StmRtc ----> STM32RTC
    |           |    Stm32F1Clock ----> hw::Stm32F1Rtc
    |           |    UnixClock -------> time()
+   |           |    NmeaClock -------> supplied NMEA sentences
    |           |
    `---<> SystemClock
            ^       ^
@@ -355,6 +359,7 @@ These are arranged in the following C++ namespaces:
 * `ace_time::clock::Clock`
     * `ace_time::clock::DS3231Clock`
     * `ace_time::clock::EspSntpClock`
+    * `ace_time::clock::NmeaClock`
     * `ace_time::clock::NtpClock`
     * `ace_time::clock::StmRtcClock`
     * `ace_time::clock::Stm32F1Clock`

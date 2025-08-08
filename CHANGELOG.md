@@ -1,6 +1,7 @@
 # Changelog
 
 * Unreleased
+    * Add NMEA as additional clock.
 * 1.3.0 (2023-07-20)
     * Replace call to `Epoch::daysToCurrentEpochFromConverterEpoch()` with
       `Epoch::daysToCurrentEpochFromInternalEpoch()`, to be consistent with

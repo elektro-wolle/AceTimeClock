@@ -23,6 +23,7 @@
 #endif
 
 #include "ace_time/clock/Clock.h"
+#include "ace_time/clock/NmeaClock.h"
 #include "ace_time/clock/NtpClock.h"
 #include "ace_time/clock/DS3231Clock.h"
 #include "ace_time/clock/UnixClock.h"
