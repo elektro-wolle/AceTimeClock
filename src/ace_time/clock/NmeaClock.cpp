@@ -7,6 +7,14 @@
 namespace ace_time {
 namespace clock {
 
+    IRAM_ATTR volatile uint32_t _nmeaMillisAtLastPPS;
+    IRAM_ATTR volatile uint32_t _nmeaSecondsFromPPS;
+    IRAM_ATTR void _nmeaPPShandler()
+    {
+        _nmeaMillisAtLastPPS = millis();
+        _nmeaSecondsFromPPS++;
+    }
+
     void NmeaClock::parse(int nmeaChar)
     {
         if (nmeaChar <= 0 || nmeaChar >= 0x7f) {
@@ -124,8 +132,14 @@ namespace clock {
         }
         // convert the GPS time to UTC
         ZonedDateTime zdt = ZonedDateTime::forComponents(year, month, day, hour, minute, second, TimeZone::forUtc());
-        m_lastSyncedGpsTime = zdt.toEpochSeconds();
+        acetime_t now = zdt.toEpochSeconds();
         m_millisAtLastSync = millis() - m_msOffsetPPStoMessage;
+        noInterrupts();
+        // set time and wait for next PPS
+        m_lastSyncedGpsTime = now;
+        _nmeaSecondsFromPPS = 0;
+        interrupts();
+        // Serial.printf("Got time %04d-%02d-%02d %02d:%02d:%02d %d %d\n", year, month, day, hour, minute, second, m_millisAtLastSync, _nmeaSecondsaFromPPS);
     }
 }
 }

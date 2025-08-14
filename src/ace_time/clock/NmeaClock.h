@@ -9,12 +9,17 @@
 
 #include "Clock.h"
 
+#ifndef IRAM_ATTR
+#define IRAM_ATTR
+#endif
+
 namespace ace_time {
 namespace clock {
 
 #ifdef NMEA_CLOCK_STATS
     /** Stats from the GPS driven clock. */
     class NmeaClockStats {
+    public:
         friend class NmeaClock;
 
         const uint32_t getMessages() { return m_messages; }
@@ -29,7 +34,6 @@ namespace clock {
         uint32_t m_gprmc;
         uint32_t m_missingFields;
         uint32_t m_invalidData;
-        uint32_t m_ageOfLastSync;
     };
 #endif
     /** A clock, that synchronizes to an external NMEA compliant GPS receiver.
@@ -55,12 +59,26 @@ namespace clock {
      * ...
      *  }
      */
+
+    extern IRAM_ATTR volatile uint32_t _nmeaMillisAtLastPPS;
+    extern IRAM_ATTR volatile uint32_t _nmeaSecondsFromPPS;
+    IRAM_ATTR void _nmeaPPShandler();
+
     class NmeaClock : public Clock {
     public:
-        /** Number of milliseconds after the second switch until the NMEA message is read. */
-        explicit NmeaClock(const uint16_t msOffsetPPStoMessage = 250)
+        /**
+         * @param msOffsetPPStoMessage Number of milliseconds after the second switch until the NMEA message is read.
+         * @param ppsPin Pin on which a PPS signal (rising edge) is applied to (optional)
+         */
+        explicit NmeaClock(const uint16_t msOffsetPPStoMessage = 250, const int8_t ppsPin = -1)
             : m_msOffsetPPStoMessage(msOffsetPPStoMessage)
+#ifdef NMEA_CLOCK_STATS
+            , m_stats(NmeaClockStats())
+#endif
         {
+            if (ppsPin >= 0) {
+                attachInterrupt(ppsPin, _nmeaPPShandler, RISING);
+            }
         }
 
         /** parse a single char from the NMEA stream. */
@@ -78,11 +96,16 @@ namespace clock {
             if (m_lastSyncedGpsTime == kInvalidSeconds) {
                 return kInvalidSeconds;
             }
-            return m_lastSyncedGpsTime + ((millis() - m_millisAtLastSync) / 1000);
+            uint32_t ppsAge = millis() - _nmeaMillisAtLastPPS;
+            if (ppsAge < 1010) { // even a fast running local clock should not run faster than 101%
+                return m_lastSyncedGpsTime + _nmeaSecondsFromPPS;
+            }
+            uint32_t syncAge = millis() - m_millisAtLastSync;
+            return m_lastSyncedGpsTime + (syncAge / 1000);
         };
-
         /** milis() when the last successful sync happened. */
-        const uint32_t getMillisOfLastSync() { return m_millisAtLastSync; }
+        const uint32_t getMillisOfLastSync() { return ::max(_nmeaMillisAtLastPPS, m_millisAtLastSync); }
+        const bool isPPSsynced() { return (millis() - _nmeaMillisAtLastPPS) < 1100; }
 
     private:
         /** buffer, pointers and state for incoming messages */
@@ -106,7 +129,7 @@ namespace clock {
 
 /** Some stats, enable with NMEA_CLOCK_STATS */
 #ifdef NMEA_CLOCK_STATS
-        const NmeaClockStats m_stats;
+        NmeaClockStats m_stats;
 #endif
 
         uint8_t intValue(const char* twoDigitStr)
